@@ -23,6 +23,7 @@ import java.rmi.UnexpectedException;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.io.IOUtils;
 import org.apache.nifi.annotation.behavior.*;
 import org.apache.nifi.components.PropertyDescriptor;
 import org.apache.nifi.components.PropertyValue;
@@ -35,11 +36,13 @@ import org.apache.nifi.annotation.documentation.Tags;
 import org.apache.nifi.processor.exception.ProcessException;
 import org.apache.nifi.processor.io.StreamCallback;
 import org.apache.nifi.processor.util.StandardValidators;
+import org.apache.nifi.stream.io.StreamUtils;
 import org.apache.nifi.util.LongHolder;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 
+@SideEffectFree
 @InputRequirement(InputRequirement.Requirement.INPUT_REQUIRED)
 @Tags({"radius", "csv"})
 @CapabilityDescription("Convert Radius log to CSV")
@@ -88,8 +91,6 @@ public class ConvertRadiusToCSV extends AbstractProcessor {
             return;
         }
 
-        String radiusCsv = "";
-
         try {
             final LongHolder written = new LongHolder(0L);
 
@@ -98,7 +99,9 @@ public class ConvertRadiusToCSV extends AbstractProcessor {
                 @Override
                 public void process(InputStream in, OutputStream out) throws IOException {
 
-                    String output = getCsvFormat(in.toString());
+                    String csv = IOUtils.toString(in);
+
+                    String output = getCsvFormat(csv);
 
                     out.write(output.getBytes());
 
@@ -154,9 +157,9 @@ public class ConvertRadiusToCSV extends AbstractProcessor {
     private static String getCsvFormat(final String content) {
 
         //String [] fileString = content.split("\\n");
-        String [] fileString = content.split("                "); //Split by anything common to break as line
+        String [] fileString = content.split("\\t"); //Split by anything common to break as line
 
-        StringBuilder csvHeader = new StringBuilder("Time, ");
+        StringBuilder csvHeader = new StringBuilder("Time,");
         StringBuilder csvValue = new StringBuilder();
 
         if (fileString != null) {
